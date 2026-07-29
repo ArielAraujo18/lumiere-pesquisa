@@ -1,13 +1,11 @@
-type PublicationsPageProps = {
-    params: Promise<{
-        slug: string;
-    }>;
-};
+import { PublicationsHero } from "@/components/sections/publications/PublicationsHero";
+import { PublicationsList } from "@/components/sections/publications/PublicationsList";
 
 export default function PublicationsPage() {
-    return (
-        <main>
-            <h1>Publicações do grupo Lumière</h1>
-        </main>
-    );
+  return (
+    <main>
+      <PublicationsHero />
+      <PublicationsList />
+    </main>
+  );
 }

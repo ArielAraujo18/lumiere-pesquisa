@@ -7,6 +7,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <div className="min-h-screen bg-[#f8faf8] lg:flex">
+      <AdminSidebar />
 
       <div className="min-w-0 flex-1">{children}</div>
     </div>

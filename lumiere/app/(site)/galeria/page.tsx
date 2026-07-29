@@ -1,13 +1,11 @@
-type GalleryPageProps = {
-    params: Promise<{
-        slug: string;
-    }>;
-};
+import { GalleryHero } from "@/components/sections/gallery/GalleryHero";
+import { GalleryGrid } from "@/components/sections/gallery/GalleryGrid";
 
 export default function GalleryPage() {
-    return (
-        <main>
-            <h1>Galeria do grupo Lumière</h1>
-        </main>
-    );
+  return (
+    <main>
+      <GalleryHero />
+      <GalleryGrid />
+    </main>
+  );
 }
