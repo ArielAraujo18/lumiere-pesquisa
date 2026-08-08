@@ -1,13 +1,39 @@
-export type Publication = {
+export type PublicationStatus = "Publicado" | "Rascunho";
+export type PublicationType =
+  | "Artigo"
+  | "Evento"
+  | "Relatório"
+  | "Resumo"
+  | "Livro"
+  | "Capítulo"
+  | "Outro";
+
+export interface Publication {
   id: string;
   title: string;
-  authors: string[];
+  slug: string;
+  authors: string;
   year: number;
-  type: "article" | "event" | "report" | "summary";
-  venue: string | null;
-  doi: string | null;
-  externalUrl: string | null;
-  abstract: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+  type: PublicationType;
+  venue: string;
+  status: PublicationStatus;
+  abstract: string;
+  doi?: string;
+  url?: string;
+  featured: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PublicationPayload {
+  title: string;
+  authors: string;
+  year: string;
+  type: PublicationType;
+  venue: string;
+  status: PublicationStatus;
+  abstract: string;
+  doi: string;
+  url: string;
+  featured: boolean;
+}

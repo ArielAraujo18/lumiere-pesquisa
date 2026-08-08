@@ -1,4 +1,3 @@
-import { ObjectId } from "mongodb";
 import clientPromise from "@/lib/mongodb";
 import type {
   PublicationPayload,
@@ -7,8 +6,6 @@ import type {
 } from "@/types/publication";
 
 export const runtime = "nodejs";
-
-type Context = { params: Promise<{ id: string }> };
 
 const validStatuses: PublicationStatus[] = ["Publicado", "Rascunho"];
 const validTypes: PublicationType[] = [
@@ -71,34 +68,24 @@ function validatePayload(payload: Partial<PublicationPayload>) {
   return null;
 }
 
-export async function GET(_request: Request, { params }: Context) {
+export async function GET() {
   try {
-    const { id } = await params;
-
-    if (!ObjectId.isValid(id)) {
-      return Response.json({ error: "ID inválido." }, { status: 400 });
-    }
-
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB ?? "lumi");
-    const publication = await db
+
+    const publications = await db
       .collection("publicacoes")
-      .findOne({ _id: new ObjectId(id) });
+      .find({})
+      .sort({ year: -1, createdAt: -1 })
+      .toArray();
 
-    if (!publication) {
-      return Response.json(
-        { error: "Publicação não encontrada." },
-        { status: 404 },
-      );
-    }
-
-    return Response.json(serializePublication(publication));
+    return Response.json(publications.map(serializePublication));
   } catch (error) {
-    console.error("Erro ao buscar publicação:", error);
+    console.error("Erro ao buscar publicações:", error);
 
     return Response.json(
       {
-        error: "Não foi possível buscar a publicação.",
+        error: "Não foi possível buscar as publicações.",
         details:
           process.env.NODE_ENV === "development" && error instanceof Error
             ? error.message
@@ -109,14 +96,8 @@ export async function GET(_request: Request, { params }: Context) {
   }
 }
 
-export async function PUT(request: Request, { params }: Context) {
+export async function POST(request: Request) {
   try {
-    const { id } = await params;
-
-    if (!ObjectId.isValid(id)) {
-      return Response.json({ error: "ID inválido." }, { status: 400 });
-    }
-
     const payload = (await request.json()) as Partial<PublicationPayload>;
     const validationError = validatePayload(payload);
 
@@ -127,27 +108,13 @@ export async function PUT(request: Request, { params }: Context) {
     const client = await clientPromise;
     const db = client.db(process.env.MONGODB_DB ?? "lumi");
     const collection = db.collection("publicacoes");
-    const objectId = new ObjectId(id);
 
-    const current = await collection.findOne({ _id: objectId });
-    if (!current) {
-      return Response.json(
-        { error: "Publicação não encontrada." },
-        { status: 404 },
-      );
-    }
+    const baseSlug = slugify(payload.title!);
+    const existingSlug = await collection.findOne({ slug: baseSlug });
+    const slug = existingSlug ? `${baseSlug}-${Date.now()}` : baseSlug;
+    const now = new Date();
 
-    let slug = current.slug as string;
-    if (current.title !== payload.title!.trim()) {
-      const baseSlug = slugify(payload.title!);
-      const existingSlug = await collection.findOne({
-        slug: baseSlug,
-        _id: { $ne: objectId },
-      });
-      slug = existingSlug ? `${baseSlug}-${Date.now()}` : baseSlug;
-    }
-
-    const update = {
+    const publication = {
       title: payload.title!.trim(),
       slug,
       authors: payload.authors!.trim(),
@@ -159,57 +126,22 @@ export async function PUT(request: Request, { params }: Context) {
       doi: payload.doi?.trim() ?? "",
       url: payload.url?.trim() ?? "",
       featured: Boolean(payload.featured),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
 
-    await collection.updateOne({ _id: objectId }, { $set: update });
-
-    const updated = await collection.findOne({ _id: objectId });
-    return Response.json(serializePublication(updated!));
-  } catch (error) {
-    console.error("Erro ao atualizar publicação:", error);
+    const result = await collection.insertOne(publication);
 
     return Response.json(
-      {
-        error: "Não foi possível atualizar a publicação.",
-        details:
-          process.env.NODE_ENV === "development" && error instanceof Error
-            ? error.message
-            : undefined,
-      },
-      { status: 500 },
+      { id: result.insertedId.toString(), ...publication },
+      { status: 201 },
     );
-  }
-}
-
-export async function DELETE(_request: Request, { params }: Context) {
-  try {
-    const { id } = await params;
-
-    if (!ObjectId.isValid(id)) {
-      return Response.json({ error: "ID inválido." }, { status: 400 });
-    }
-
-    const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB ?? "lumi");
-    const result = await db
-      .collection("publicacoes")
-      .deleteOne({ _id: new ObjectId(id) });
-
-    if (!result.deletedCount) {
-      return Response.json(
-        { error: "Publicação não encontrada." },
-        { status: 404 },
-      );
-    }
-
-    return Response.json({ success: true });
   } catch (error) {
-    console.error("Erro ao excluir publicação:", error);
+    console.error("Erro ao criar publicação:", error);
 
     return Response.json(
       {
-        error: "Não foi possível excluir a publicação.",
+        error: "Não foi possível criar a publicação.",
         details:
           process.env.NODE_ENV === "development" && error instanceof Error
             ? error.message

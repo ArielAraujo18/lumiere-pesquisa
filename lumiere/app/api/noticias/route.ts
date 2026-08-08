@@ -42,8 +42,15 @@
     } catch (error) {
       console.error("Erro ao buscar notícias:", error);
 
+      const message =
+        error instanceof Error ? error.message : "Erro desconhecido";
+
       return Response.json(
-        { error: "Não foi possível buscar as notícias." },
+        {
+          error: "Não foi possível buscar as notícias.",
+          details:
+            process.env.NODE_ENV === "development" ? message : undefined,
+        },
         { status: 500 },
       );
     }
