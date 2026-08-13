@@ -95,13 +95,18 @@ export function GalleryGrid() {
               key={item.src}
               className="relative mb-4 break-inside-avoid overflow-hidden rounded-2xl bg-[#e8f2f0]"
             >
+              {item.imageUrl ? (
               <Image
-                src={item.src}
-                alt={item.alt}
-                width={800}
-                height={600}
-                className="h-auto w-full object-cover transition duration-300 hover:scale-105"
+                src={item.imageUrl}
+                alt={item.title}
+                fill
+                className="object-cover transition duration-300 hover:scale-105"
               />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#e8f2f0] text-sm text-[#72ad99]">
+                Sem imagem
+              </div>
+            )}
             </figure>
           ))}
         </div>

@@ -5,7 +5,24 @@ import { WhyLumiere } from "@/components/sections/home/WhyLumiere";
 import { LatestNews } from "@/components/sections/home/LatestNews";
 import { ContactCTA } from "@/components/sections/home/ContactCTA";
 
-export default function HomePage() {
+async function getNews() {
+  const response = await fetch(
+    `${process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"}/api/noticias`,
+    {
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    return [];
+  }
+
+  return response.json();
+}
+
+export default async function HomePage() {
+  const news = await getNews();
+
   return (
     <main>
       <section className="relative min-h-[calc(100svh-72px)] overflow-hidden bg-gradient-to-br from-[#0a4542] via-[#14564d] to-[#287263] text-white">
@@ -65,13 +82,13 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </section>  
+      </section>
+
       <WhatWeDo />
       <StatsSection />
       <WhyLumiere />
-      <LatestNews />
+      <LatestNews news={news} />
       <ContactCTA />
     </main>
-    
   );
 }

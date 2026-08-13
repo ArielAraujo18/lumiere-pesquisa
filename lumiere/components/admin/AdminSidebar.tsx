@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
-  MessageSquare,
   Newspaper,
   Settings,
   Users,
@@ -55,11 +54,6 @@ const links: AdminLink[] = [
     label: "Galeria",
     href: "/admin/galeria",
     icon: Images,
-  },
-  {
-    label: "Mensagens",
-    href: "/admin/mensagens",
-    icon: MessageSquare,
   },
   {
     label: "Configurações",

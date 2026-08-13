@@ -3,7 +3,6 @@ import {
   BookOpen,
   FolderKanban,
   Images,
-  MessageSquare,
   Newspaper,
   Plus,
   Users,
@@ -21,7 +20,6 @@ const stats: Stat[] = [
   { value: 5, label: "Projetos", icon: FolderKanban },
   { value: 11, label: "Membros", icon: Users },
   { value: 7, label: "Publicações", icon: BookOpen },
-  { value: 3, label: "Mensagens", icon: MessageSquare },
 ];
 const recentNews = [
   {
@@ -150,13 +148,7 @@ export default function DashboardPage() {
           label="Novo projeto"
           icon={Plus}
         />
-
-        <QuickAction
-          href="/admin/mensagens"
-          label="Ver mensagens"
-          icon={MessageSquare}
-        />
-
+        
         <QuickAction
           href="/admin/galeria"
           label="Gerenciar galeria"

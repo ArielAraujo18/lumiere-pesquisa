@@ -7,11 +7,17 @@ if (!uri) {
 }
 
 const options = {
+  family: 4,
+
+  tls: true,
+
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
   },
+
+  serverSelectionTimeoutMS: 15000,
 };
 
 declare global {

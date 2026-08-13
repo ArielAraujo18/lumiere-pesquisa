@@ -42,18 +42,7 @@ export default function NewNewsPage() {
 
       const response = await fetch("/api/noticias", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: formData.get("title"),
-          summary: formData.get("summary"),
-          content: formData.get("content"),
-          category: formData.get("category"),
-          author: formData.get("author"),
-          date: formData.get("date"),
-          status,
-        }),
+        body: formData,
       });
 
       const result = await response.json();
@@ -75,7 +64,6 @@ export default function NewNewsPage() {
     } finally {
       setSaving(false);
     }
-  }
 
   return (
     <form

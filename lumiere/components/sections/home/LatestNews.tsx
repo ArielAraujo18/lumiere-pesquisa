@@ -1,37 +1,20 @@
-import Image from "next/image";
 import Link from "next/link";
 
-const news = [
-  {
-    title: "Lumière apresenta projeto no Fórum de Inovação RN",
-    summary:
-      "Membros do grupo apresentaram resultados do projeto de Dados Urbanos durante o Fórum de Inovação e Tecnologia.",
-    category: "Eventos",
-    date: "14/11/2024",
-    image: "/images/noticias/forum-inovacao.jpg",
-    slug: "lumiere-apresenta-projeto-forum-inovacao-rn",
-  },
-  {
-    title: "Visita técnica à Prefeitura de Angicos firma parceria",
-    summary:
-      "Equipe do Lumière visitou a secretaria municipal de planejamento para discutir novas soluções tecnológicas.",
-    category: "Visitas técnicas",
-    date: "02/10/2024",
-    image: "/images/noticias/visita-tecnica.jpg",
-    slug: "visita-tecnica-prefeitura-angicos",
-  },
-  {
-    title: "Novo bolsista IC inicia pesquisa em mobilidade urbana",
-    summary:
-      "O grupo recebe novo integrante para desenvolver pesquisa sobre soluções tecnológicas para mobilidade urbana.",
-    category: "Extensão",
-    date: "19/09/2024",
-    image: "/images/noticias/novo-bolsista.jpg",
-    slug: "novo-bolsista-pesquisa-mobilidade-urbana",
-  },
-];
+type News = {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  publishedAt: string;
+  slug: string;
+  imageUrl?: string | null;
+};
 
-export function LatestNews() {
+type LatestNewsProps = {
+  news: News[];
+};
+
+export function LatestNews({ news = [] }: LatestNewsProps) {
   return (
     <section className="bg-white px-4 py-20 sm:px-6 sm:py-24 lg:px-8 lg:py-28">
       <div className="mx-auto max-w-7xl">
@@ -58,18 +41,22 @@ export function LatestNews() {
         <div className="mt-12 grid gap-6 md:grid-cols-2 lg:mt-16 lg:grid-cols-3">
           {news.map((item) => (
             <article
-              key={item.slug}
+              key={item.id}
               className="overflow-hidden rounded-2xl border border-black/5 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.10)] transition hover:-translate-y-1 hover:shadow-lg"
             >
               <Link href={`/noticias/${item.slug}`}>
                 <div className="relative aspect-[16/9] overflow-hidden bg-[#e6efeb]">
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover transition duration-300 hover:scale-105"
-                  />
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="absolute inset-0 h-full w-full object-cover transition duration-300 hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center bg-[#e8f2f0] text-sm text-[#72ad99]">
+                      Sem imagem
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-5">
@@ -78,7 +65,9 @@ export function LatestNews() {
                       {item.category}
                     </span>
 
-                    <time className="text-[#72ad99]">{item.date}</time>
+                    <time className="text-[#72ad99]">
+                      {new Date(item.publishedAt).toLocaleDateString("pt-BR")}
+                    </time>
                   </div>
 
                   <h3 className="mt-4 text-base font-bold leading-6 text-[#071a2b]">
