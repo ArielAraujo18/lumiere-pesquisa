@@ -4,6 +4,7 @@ import { ChangeEvent } from "react";
 import { Image as ImageIcon, Link2, Mail, UserRound } from "lucide-react";
 import type { MemberPayload } from "@/types/member";
 
+
 type Props = {
   value: MemberPayload;
   onChange: (value: MemberPayload) => void;

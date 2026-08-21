@@ -1,6 +1,6 @@
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import type { Project } from "@/types/project";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -11,66 +11,37 @@ const categories = [
   "Dados",
   "Extensão",
   "Pesquisa",
-];
-
-const projects = [
-  {
-    title: "Monitoramento Inteligente de Ambientes Urbanos",
-    description:
-      "Rede de sensores de baixo custo para monitorar qualidade do ar, ruído, temperatura e umidade em tempo real.",
-    category: "IoT",
-    status: "Em andamento",
-    image: "/images/projetos/monitoramento.jpg",
-    slug: "monitoramento-inteligente-ambientes-urbanos",
-  },
-  {
-    title: "Soluções IoT para Cidades Inteligentes",
-    description:
-      "Plataforma aberta de integração para dispositivos IoT heterogêneos em contextos urbanos.",
-    category: "IoT",
-    status: "Concluído",
-    image: "/images/projetos/cidades-inteligentes.jpg",
-    slug: "solucoes-iot-cidades-inteligentes",
-  },
-  {
-    title: "Sustentabilidade e Tecnologia Aplicada",
-    description:
-      "Pesquisa sobre eficiência energética e tecnologias verdes para ambientes públicos e institucionais.",
-    category: "Sustentabilidade",
-    status: "Em andamento",
-    image: "/images/projetos/sustentabilidade.jpg",
-    slug: "sustentabilidade-tecnologia-aplicada",
-  },
-  {
-    title: "Dados Urbanos para Tomada de Decisão",
-    description:
-      "Painel de indicadores urbanos para apoio à gestão pública em municípios do semiárido potiguar.",
-    category: "Dados",
-    status: "Em andamento",
-    image: "/images/projetos/dados-urbanos.jpg",
-    slug: "dados-urbanos-tomada-de-decisao",
-  },
-  {
-    title: "Infraestrutura Inteligente para Ambientes Públicos",
-    description:
-      "Implantação de infraestrutura digital em praças e espaços públicos de Angicos.",
-    category: "Extensão",
-    status: "Planejado",
-    image: "/images/projetos/infraestrutura.jpg",
-    slug: "infraestrutura-inteligente-ambientes-publicos",
-  },
-];
+];  
 
 export function ProjectsGrid() {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const response = await fetch("/api/projetos");
+
+        if (!response.ok) {
+          throw new Error("Erro ao carregar projetos");
+        }
+
+        const data: Project[] = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadProjects();
+  }, []);
 
   const filteredProjects =
     selectedCategory === "Todos"
       ? projects
       : projects.filter(
-          (project) => project.category === selectedCategory,
+          (project) => project.area === selectedCategory
         );
-
   return (
     <section className="bg-[#f8faf8] px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -115,7 +86,7 @@ export function ProjectsGrid() {
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-[#e8f2f0] px-3 py-1 font-medium text-[#27877d]">
-                      {project.category}
+                      {project.area}
                     </span>
 
                     <span className="rounded-full bg-[#edf6ec] px-3 py-1 font-medium text-[#287a42]">

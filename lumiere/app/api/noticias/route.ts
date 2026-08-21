@@ -34,11 +34,17 @@ export async function GET() {
       .toArray();
 
     return Response.json(
-      news.map((item) => ({
-        ...item,
-        id: item._id.toString(),
-        _id: undefined,
-      })),
+      news.map((item) => {
+        const { _id, ...data } = item;
+
+        return {
+          ...data,
+          id: _id.toString(),
+
+          // O frontend usa item.image
+          image: item.imageUrl ?? "",
+        };
+      }),
     );
   } catch (error) {
     console.error("Erro ao buscar notícias:", error);
@@ -50,7 +56,9 @@ export async function GET() {
       {
         error: "Não foi possível buscar as notícias.",
         details:
-          process.env.NODE_ENV === "development" ? message : undefined,
+          process.env.NODE_ENV === "development"
+            ? message
+            : undefined,
       },
       { status: 500 },
     );
@@ -62,19 +70,17 @@ export async function POST(request: Request) {
     const formData = await request.formData();
 
     const body: NewsPayload = {
-      title: String(formData.get("title") || ""),
-      summary: String(formData.get("summary") || ""),
-      content: String(formData.get("content") || ""),
-      category: String(formData.get("category") || ""),
-      author: String(formData.get("author") || ""),
-      date: String(formData.get("date") || ""),
+      title: String(formData.get("title") ?? ""),
+      summary: String(formData.get("summary") ?? ""),
+      content: String(formData.get("content") ?? ""),
+      category: String(formData.get("category") ?? ""),
+      author: String(formData.get("author") ?? ""),
+      date: String(formData.get("date") ?? ""),
       status:
         formData.get("status") === "Publicado"
           ? "Publicado"
           : "Rascunho",
     };
-
-    const image = formData.get("image");
 
     if (
       !body.title?.trim() ||
@@ -84,10 +90,16 @@ export async function POST(request: Request) {
       !body.author?.trim()
     ) {
       return Response.json(
-        { error: "Preencha todos os campos obrigatórios." },
-        { status: 400 },
+        {
+          error: "Preencha todos os campos obrigatórios.",
+        },
+        {
+          status: 400,
+        },
       );
     }
+
+    const image = formData.get("image");
 
     let imageUrl: string | null = null;
 
@@ -100,19 +112,31 @@ export async function POST(request: Request) {
 
       if (!allowedTypes.includes(image.type)) {
         return Response.json(
-          { error: "A imagem deve ser JPG, PNG ou WEBP." },
-          { status: 400 },
+          {
+            error: "A imagem deve ser JPG, PNG ou WebP.",
+          },
+          {
+            status: 400,
+          },
         );
       }
 
-      if (image.size > 5 * 1024 * 1024) {
+      const maxSize = 5 * 1024 * 1024;
+
+      if (image.size > maxSize) {
         return Response.json(
-          { error: "A imagem deve ter no máximo 5 MB." },
-          { status: 400 },
+          {
+            error: "A imagem deve ter no máximo 5 MB.",
+          },
+          {
+            status: 400,
+          },
         );
       }
 
-      const buffer = Buffer.from(await image.arrayBuffer());
+      const arrayBuffer = await image.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
       imageUrl = `data:${image.type};base64,${buffer.toString("base64")}`;
     }
 
@@ -120,8 +144,11 @@ export async function POST(request: Request) {
     const database = client.db(process.env.MONGODB_DB);
     const collection = database.collection("noticias");
 
-    const baseSlug = createSlug(body.title!);
-    const existingNews = await collection.findOne({ slug: baseSlug });
+    const baseSlug = createSlug(body.title.trim());
+
+    const existingNews = await collection.findOne({
+      slug: baseSlug,
+    });
 
     const slug = existingNews
       ? `${baseSlug}-${Date.now()}`
@@ -129,21 +156,37 @@ export async function POST(request: Request) {
 
     const now = new Date();
 
+    let publishedAt = now;
+
+    if (body.date) {
+      const parsedDate = new Date(
+        `${body.date}T12:00:00.000Z`,
+      );
+
+      if (!Number.isNaN(parsedDate.getTime())) {
+        publishedAt = parsedDate;
+      }
+    }
+
     const document = {
-      title: body.title!.trim(),
-      summary: body.summary!.trim(),
-      content: body.content!.trim(),
-      category: body.category!.trim(),
-      author: body.author!.trim(),
+      title: body.title.trim(),
+      summary: body.summary.trim(),
+      content: body.content.trim(),
+      category: body.category.trim(),
+      author: body.author.trim(),
+
       status:
         body.status === "Publicado"
           ? "Publicado"
           : "Rascunho",
-      publishedAt: body.date
-        ? new Date(`${body.date}T12:00:00.000Z`)
-        : now,
+
+      publishedAt,
+
       slug,
+
+      // Imagem fica armazenada no MongoDB
       imageUrl,
+
       createdAt: now,
       updatedAt: now,
     };
@@ -155,15 +198,29 @@ export async function POST(request: Request) {
         message: "Notícia criada com sucesso.",
         id: result.insertedId.toString(),
         slug,
+        image: imageUrl,
       },
-      { status: 201 },
+      {
+        status: 201,
+      },
     );
   } catch (error) {
     console.error("Erro ao criar notícia:", error);
 
+    const message =
+      error instanceof Error ? error.message : "Erro desconhecido";
+
     return Response.json(
-      { error: "Não foi possível criar a notícia." },
-      { status: 500 },
+      {
+        error: "Não foi possível criar a notícia.",
+        details:
+          process.env.NODE_ENV === "development"
+            ? message
+            : undefined,
+      },
+      {
+        status: 500,
+      },
     );
   }
 }

@@ -1,23 +1,17 @@
 "use client";
 
-import {
-  useState,
-  type FormEvent,
-  type ReactNode,
-} from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Eye,
-  ImageUp,
-  Save,
-  Send,
-} from "lucide-react";
+import { ArrowLeft, Eye, ImageUp, Save, Send } from "lucide-react";
+import Image from "next/image";
 
 export default function NewNewsPage() {
+  
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [imageName, setImageName] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +29,9 @@ export default function NewNewsPage() {
         ? "Publicado"
         : action === "draft"
           ? "Rascunho"
-          : formData.get("status");
+          : String(formData.get("status") ?? "Rascunho");
+
+    formData.set("status", status);
 
     try {
       setSaving(true);
@@ -64,11 +60,12 @@ export default function NewNewsPage() {
     } finally {
       setSaving(false);
     }
+  }
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="min-h-screen bg-[#f8faf8]"
+      className="min-h-screen bg-[#f8faf8] text-[#071a2b]"
     >
       <header className="flex flex-col gap-4 border-b border-black/10 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <div className="flex items-center gap-4">
@@ -80,7 +77,7 @@ export default function NewNewsPage() {
             Voltar
           </Link>
 
-          <h1 className="text-xl font-bold text-[#071a2b]">
+          <h1 className="text-xl font-bold">
             Nova postagem
           </h1>
         </div>
@@ -99,7 +96,6 @@ export default function NewNewsPage() {
 
           <button
             type="submit"
-            name="action"
             value="draft"
             disabled={saving}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#e8f2f0] px-5 text-sm font-semibold text-[#27877d] transition hover:bg-[#dcebe7] disabled:opacity-50"
@@ -110,7 +106,6 @@ export default function NewNewsPage() {
 
           <button
             type="submit"
-            name="action"
             value="publish"
             disabled={saving}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#43a548] px-5 text-sm font-semibold text-white transition hover:bg-[#39913e] disabled:opacity-50"
@@ -158,19 +153,31 @@ export default function NewNewsPage() {
           </article>
 
           <article className="rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-            <h2 className="font-bold text-[#071a2b]">
+            <h2 className="font-bold">
               Imagem de capa
             </h2>
 
             <label className="mt-5 flex min-h-52 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[#27877d]/30 px-6 text-center transition hover:border-[#27877d] hover:bg-[#f8faf8]">
-              <ImageUp
-                size={34}
-                strokeWidth={1.6}
-                className="text-[#72ad99]"
-              />
+              {imagePreview ? (
+                <div className="relative mb-4 h-48 w-full overflow-hidden rounded-xl">
+                  <Image
+                    src={imagePreview}
+                    alt="Prévia da imagem selecionada"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <ImageUp
+                  size={34}
+                  strokeWidth={1.6}
+                  className="text-[#72ad99]"
+                />
+              )}
 
               <span className="mt-4 text-sm font-medium text-[#334b49]">
-                Clique para fazer upload
+                {imageName || "Clique para fazer upload"}
               </span>
 
               <span className="mt-1 text-xs text-[#72ad99]">
@@ -181,11 +188,23 @@ export default function NewNewsPage() {
                 Selecionar imagem
               </span>
 
-              <input
+             <input
                 name="image"
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+
+                  if (!file) {
+                    setImageName("");
+                    setImagePreview(null);
+                    return;
+                  }
+
+                  setImageName(file.name);
+                  setImagePreview(URL.createObjectURL(file));
+                }}
               />
             </label>
           </article>
@@ -193,7 +212,7 @@ export default function NewNewsPage() {
 
         <aside>
           <article className="rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-            <h2 className="text-lg font-bold text-[#071a2b]">
+            <h2 className="text-lg font-bold">
               Detalhes
             </h2>
 
@@ -274,7 +293,6 @@ function FormField({
       <span className="mb-2 block text-sm font-medium text-[#334b49]">
         {label}
       </span>
-
       {children}
     </label>
   );

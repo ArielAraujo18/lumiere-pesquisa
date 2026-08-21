@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -13,43 +13,45 @@ const categories = [
   "Destaques",
 ];
 
-const news = [
-  {
-    title: "Lumière apresenta projeto no Fórum de Inovação RN",
-    summary:
-      "Membros do grupo apresentaram resultados do projeto de Dados Urbanos durante o Fórum de Inovação e Tecnologia.",
-    category: "Eventos",
-    date: "14/11/2024",
-    image: "/images/noticias/forum-inovacao.jpg",
-    slug: "lumiere-apresenta-projeto-forum-inovacao-rn",
-  },
-  {
-    title: "Visita técnica à Prefeitura de Angicos firma parceria",
-    summary:
-      "Equipe do Lumière visitou a secretaria municipal de planejamento para discutir a implantação de novas soluções.",
-    category: "Visitas técnicas",
-    date: "02/10/2024",
-    image: "/images/noticias/visita-tecnica.jpg",
-    slug: "visita-tecnica-prefeitura-angicos",
-  },
-  {
-    title: "Novo bolsista IC inicia pesquisa em mobilidade urbana",
-    summary:
-      "O grupo recebe novo integrante para desenvolver pesquisa sobre soluções tecnológicas para mobilidade urbana.",
-    category: "Extensão",
-    date: "19/09/2024",
-    image: "/images/noticias/novo-bolsista.jpg",
-    slug: "novo-bolsista-pesquisa-mobilidade-urbana",
-  },
-];
+type News = {
+  id: string;
+  title: string;
+  summary: string;
+  category: string;
+  date: string;
+  image: string;
+  slug: string;
+};
 
 export function NewsGrid() {
+  const [news, setNews] = useState<News[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+
+  useEffect(() => {
+    async function loadNews() {
+      try {
+        const response = await fetch("/api/noticias");
+
+        if (!response.ok) {
+          throw new Error("Erro ao carregar notícias");
+        }
+
+        const data: News[] = await response.json();
+        setNews(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadNews();
+  }, []);
 
   const filteredNews =
     selectedCategory === "Todos"
       ? news
-      : news.filter((item) => item.category === selectedCategory);
+      : news.filter(
+          (item) => item.category === selectedCategory
+        );
 
   return (
     <section className="bg-[#f8faf8] px-4 py-16 sm:px-6 lg:px-8">
@@ -83,13 +85,19 @@ export function NewsGrid() {
             >
               <div className="flex w-full flex-col">
                 <div className="relative aspect-[16/9] overflow-hidden bg-[#e8f2f0]">
-                  <Image
-                    src={item.image}
-                    alt={item.title}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    className="object-cover transition duration-300 hover:scale-105"
-                  />
+                  {item.image ? (
+                    <Image
+                      src={item.image}
+                      alt={item.title}
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition duration-300 hover:scale-105"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-sm text-[#72ad99]">
+                      Sem imagem
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-1 flex-col p-6">

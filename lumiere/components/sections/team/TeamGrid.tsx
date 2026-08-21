@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 
 const categories = [
@@ -11,105 +11,45 @@ const categories = [
   "Colaboradores",
 ];
 
-const members = [
-  {
-    name: "Profa. Valquíria Silva",
-    role: "Coordenadora",
-    area: "Smart Cities & Sustentabilidade",
-    category: "Coordenação",
-    image: "/images/equipe/valquiria.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-  {
-    name: "Prof. Marcílio Correia",
-    role: "Vice-coordenador",
-    area: "IoT & Sistemas Embarcados",
-    category: "Coordenação",
-    image: "/images/equipe/marcilio.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-  {
-    name: "Dr. Roberto Fernandes",
-    role: "Pesquisador",
-    area: "Dados Urbanos & BI",
-    category: "Pesquisadores",
-    image: "/images/equipe/roberto.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-  {
-    name: "Ma. Carla Nogueira",
-    role: "Pesquisadora",
-    area: "Mobilidade Urbana",
-    category: "Pesquisadores",
-    image: "/images/equipe/carla.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-  {
-    name: "Ana Beatriz Santos",
-    role: "Bolsista IC",
-    area: "Sensores & Redes IoT",
-    category: "Bolsistas",
-    image: "/images/equipe/ana.jpg",
-    profileLabel: "LinkedIn",
-    profileUrl: "#",
-  },
-  {
-    name: "Carlos Eduardo Lima",
-    role: "Bolsista IC",
-    area: "Sistemas Embarcados",
-    category: "Bolsistas",
-    image: "/images/equipe/carlos.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-  {
-    name: "Maria Clara Bezerra",
-    role: "Bolsista Extensão",
-    area: "Sustentabilidade",
-    category: "Bolsistas",
-    image: "/images/equipe/maria.jpg",
-    profileLabel: "LinkedIn",
-    profileUrl: "#",
-  },
-  {
-    name: "João Pedro Ramos",
-    role: "Bolsista IC",
-    area: "Plataformas IoT",
-    category: "Bolsistas",
-    image: "/images/equipe/joao.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-  {
-    name: "Luís Felipe Araújo",
-    role: "Voluntário",
-    area: "Análise de Dados",
-    category: "Colaboradores",
-    image: "/images/equipe/luis.jpg",
-  },
-  {
-    name: "Profa. Renata Maia",
-    role: "Colaboradora",
-    area: "Direito Digital & Privacidade",
-    category: "Colaboradores",
-    image: "/images/equipe/renata.jpg",
-    profileLabel: "Lattes",
-    profileUrl: "#",
-  },
-];
+type Member = {
+  id: string;
+  name: string;
+  role: string;
+  area: string;
+  category: string;
+  image: string;
+  profileLabel?: string;
+  profileUrl?: string;
+};
 
 export function TeamGrid() {
+  const [members, setMembers] = useState<Member[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+
+  useEffect(() => {
+    async function loadMembers() {
+      try {
+        const response = await fetch("/api/equipe");
+
+        if (!response.ok) {
+          throw new Error("Erro ao carregar equipe");
+        }
+
+        const data: Member[] = await response.json();
+        setMembers(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadMembers();
+  }, []);
 
   const filteredMembers =
     selectedCategory === "Todos"
       ? members
       : members.filter(
-          (member) => member.category === selectedCategory,
+          (member) => member.category === selectedCategory
         );
 
   return (
@@ -139,7 +79,7 @@ export function TeamGrid() {
         <div className="mt-12 grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filteredMembers.map((member) => (
             <article
-              key={member.name}
+              key={member.id}
               className="flex min-h-56 flex-col items-center rounded-2xl border border-black/5 bg-white p-6 text-center shadow-[0_2px_8px_rgba(0,0,0,0.10)] transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="relative h-20 w-20 overflow-hidden rounded-full bg-[#e8f2f0]">

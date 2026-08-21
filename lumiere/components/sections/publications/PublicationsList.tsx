@@ -1,47 +1,42 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const categories = ["Todos", "Artigos", "Eventos", "Resumos", "Relatórios"];
 
-const publications = [
-  {
-    title: "Monitoramento Ambiental Urbano com Redes de Sensores de Baixo Custo",
-    authors: "CORREIA, M.; SANTOS, A. B.; LIMA, C. E.",
-    venue: "Simpósio Brasileiro de Computação Ubíqua",
-    category: "Artigos",
-    year: 2024,
-    url: "#",
-  },
-  {
-    title: "Plataforma Integrada para Gestão de Dispositivos IoT em Smart Cities",
-    authors: "SILVA, V.; CORREIA, M.; RAMOS, J. P.",
-    venue: "IEEE SmartCity Conference",
-    category: "Artigos",
-    year: 2024,
-    url: "#",
-  },
-  {
-    title: "Dashboard de Indicadores Urbanos para Municípios do Semiárido",
-    authors: "CORREIA, M.; ARAÚJO, L. F.; OLIVEIRA, R.",
-    venue: "Fórum de Inovação e Tecnologia RN",
-    category: "Eventos",
-    year: 2023,
-    url: "#",
-  },
-  {
-    title: "Eficiência Energética em IES: Diagnóstico e Proposta de Melhoria",
-    authors: "SILVA, V.; BEZERRA, M. C.",
-    venue: "Congresso Brasileiro de Eficiência Energética",
-    category: "Eventos",
-    year: 2023,
-    url: "#",
-  },
-];
+type Publication = {
+  id: string;
+  title: string;
+  authors: string;
+  venue: string;
+  category: string;
+  year: number;
+  url: string;
+};
 
 export function PublicationsList() {
+  const [publications, setPublications] = useState<Publication[]>([]);
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    async function loadPublications() {
+      try {
+        const response = await fetch("/api/publicacoes");
+
+        if (!response.ok) {
+          throw new Error("Erro ao carregar publicações");
+        }
+
+        const data: Publication[] = await response.json();
+        setPublications(data);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void loadPublications();
+  }, []);
 
   const filteredPublications = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -59,8 +54,8 @@ export function PublicationsList() {
 
       return matchesCategory && matchesSearch;
     });
-  }, [search, selectedCategory]);
-
+  }, [publications, search, selectedCategory]);
+  
   return (
     <section className="bg-[#f8faf8] px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-5xl">
@@ -114,7 +109,7 @@ export function PublicationsList() {
         <div className="mt-10 space-y-4">
           {filteredPublications.map((publication) => (
             <article
-              key={publication.title}
+              key={publication.id}
               className="flex flex-col gap-5 rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)] sm:flex-row sm:items-center sm:justify-between"
             >
               <div>
