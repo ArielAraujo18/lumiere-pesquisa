@@ -235,7 +235,7 @@ export default function DashboardPage() {
           </ActionButton>
 
           <ActionButton
-            href="/admin/projetos/novo"
+            href="/admin/projetos/"
             icon={<Plus size={18} />}
           >
             Novo projeto
