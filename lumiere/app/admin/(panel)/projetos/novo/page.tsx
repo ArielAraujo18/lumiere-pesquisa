@@ -3,16 +3,33 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ImageUp, Save, Star } from "lucide-react";
 import {
+  ArrowLeft,
+  ImageUp,
+  Save,
+  Star,
+  Users,
+} from "lucide-react";
+import {
+  useEffect,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from "react";
+
 import type {
   ProjectPayload,
   ProjectStatus,
 } from "@/types/project";
+
+import { projectAreas } from "@/constants/projectArea";
+
+type Member = {
+  id: string;
+  name: string;
+  role: string;
+  status?: string;
+};
 
 const initialProject: ProjectPayload = {
   title: "",
@@ -25,9 +42,12 @@ const initialProject: ProjectPayload = {
   endDate: "",
   imageUrl: "",
   featured: false,
+  memberIds: [],
 };
 
-async function parseResponse(response: Response) {
+async function parseResponse<T>(
+  response: Response,
+): Promise<T> {
   const text = await response.text();
 
   let data;
@@ -44,11 +64,13 @@ async function parseResponse(response: Response) {
 
   if (!response.ok) {
     throw new Error(
-      data.details ?? data.error ?? "Erro inesperado.",
+      data.details ??
+        data.error ??
+        "Erro inesperado.",
     );
   }
 
-  return data;
+  return data as T;
 }
 
 export default function NewProjectPage() {
@@ -57,20 +79,83 @@ export default function NewProjectPage() {
   const [project, setProject] =
     useState<ProjectPayload>(initialProject);
 
-  const [image, setImage] = useState<File | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [loadingMembers, setLoadingMembers] =
+    useState(true);
+
+  const [image, setImage] =
+    useState<File | null>(null);
+
   const [imagePreview, setImagePreview] =
     useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  function updateField<K extends keyof ProjectPayload>(
+  useEffect(() => {
+    async function loadMembers() {
+      try {
+        setLoadingMembers(true);
+
+        const response = await fetch("/api/equipe", {
+          cache: "no-store",
+        });
+
+        const data =
+          await parseResponse<Member[]>(response);
+
+        setMembers(
+          data.filter(
+            (member) =>
+              !member.status ||
+              member.status === "Ativo",
+          ),
+        );
+      } catch (loadError) {
+        console.error(
+          "Erro ao carregar membros:",
+          loadError,
+        );
+
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Não foi possível carregar os membros.",
+        );
+      } finally {
+        setLoadingMembers(false);
+      }
+    }
+
+    void loadMembers();
+  }, []);
+
+  function updateField<
+    K extends keyof ProjectPayload,
+  >(
     field: K,
     value: ProjectPayload[K],
   ) {
     setProject((current) => ({
       ...current,
       [field]: value,
+    }));
+  }
+
+  function toggleMember(
+    memberId: string,
+    checked: boolean,
+  ) {
+    setProject((current) => ({
+      ...current,
+
+      memberIds: checked
+        ? current.memberIds.includes(memberId)
+          ? current.memberIds
+          : [...current.memberIds, memberId]
+        : current.memberIds.filter(
+            (id) => id !== memberId,
+          ),
     }));
   }
 
@@ -85,12 +170,6 @@ export default function NewProjectPage() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("A imagem deve ter no máximo 5 MB.");
-      event.target.value = "";
-      return;
-    }
-
     const allowedTypes = [
       "image/jpeg",
       "image/png",
@@ -98,14 +177,26 @@ export default function NewProjectPage() {
     ];
 
     if (!allowedTypes.includes(file.type)) {
-      setError("A imagem deve ser JPG, PNG ou WebP.");
+      setError(
+        "A imagem deve ser JPG, PNG ou WebP.",
+      );
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError(
+        "A imagem deve ter no máximo 5 MB.",
+      );
       event.target.value = "";
       return;
     }
 
     setError("");
     setImage(file);
-    setImagePreview(URL.createObjectURL(file));
+    setImagePreview(
+      URL.createObjectURL(file),
+    );
   }
 
   async function handleSubmit(
@@ -122,14 +213,46 @@ export default function NewProjectPage() {
       formData.set("title", project.title);
       formData.set("area", project.area);
       formData.set("status", project.status);
-      formData.set("responsible", project.responsible);
-      formData.set("summary", project.summary);
-      formData.set("description", project.description);
-      formData.set("startDate", project.startDate);
-      formData.set("endDate", project.endDate ?? "");
+
+      formData.set(
+        "responsible",
+        project.responsible,
+      );
+
+      formData.set(
+        "summary",
+        project.summary,
+      );
+
+      formData.set(
+        "description",
+        project.description,
+      );
+
+      formData.set(
+        "startDate",
+        project.startDate,
+      );
+
+      formData.set(
+        "endDate",
+        project.endDate ?? "",
+      );
+
       formData.set(
         "featured",
-        project.featured ? "true" : "false",
+        project.featured
+          ? "true"
+          : "false",
+      );
+
+      project.memberIds.forEach(
+        (memberId) => {
+          formData.append(
+            "memberIds",
+            memberId,
+          );
+        },
       );
 
       if (image) {
@@ -181,98 +304,235 @@ export default function NewProjectPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]"
+          className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]"
         >
-          <section className="rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_12px_rgba(7,26,43,0.06)]">
-            <h2 className="text-lg font-bold">
-              Informações do projeto
-            </h2>
+          <div className="space-y-6">
+            <section className="rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_12px_rgba(7,26,43,0.06)]">
+              <h2 className="text-lg font-bold">
+                Informações do projeto
+              </h2>
 
-            <p className="mt-1 text-sm text-[#667a77]">
-              Preencha os dados que serão usados no painel e no
-              site público.
-            </p>
+              <p className="mt-1 text-sm text-[#667a77]">
+                Preencha os dados que serão usados no painel e no site público.
+              </p>
 
-            <div className="mt-7 space-y-6">
-              <Field label="Nome do projeto">
-                <input
-                  required
-                  value={project.title}
-                  onChange={(event) =>
-                    updateField("title", event.target.value)
-                  }
-                  className={inputClass}
-                  placeholder="Ex.: Monitoramento Inteligente de Ambientes Urbanos"
-                />
-              </Field>
-
-              <div className="grid gap-5 md:grid-cols-2">
-                <Field label="Área">
+              <div className="mt-7 space-y-6">
+                <Field label="Nome do projeto">
                   <input
                     required
-                    value={project.area}
-                    onChange={(event) =>
-                      updateField("area", event.target.value)
-                    }
-                    className={inputClass}
-                    placeholder="Ex.: IoT"
-                  />
-                </Field>
-
-                <Field label="Responsável">
-                  <input
-                    required
-                    value={project.responsible}
+                    value={project.title}
                     onChange={(event) =>
                       updateField(
-                        "responsible",
+                        "title",
                         event.target.value,
                       )
                     }
+                    placeholder="Ex.: Monitoramento Inteligente de Ambientes Urbanos"
                     className={inputClass}
-                    placeholder="Ex.: Prof. Marcílio Correia"
+                  />
+                </Field>
+
+                <div className="grid gap-5 md:grid-cols-2">
+                  <Field label="Área">
+                    <select
+                      required
+                      value={project.area}
+                      onChange={(event) =>
+                        updateField(
+                          "area",
+                          event.target.value,
+                        )
+                      }
+                      className={inputClass}
+                    >
+                      <option
+                        value=""
+                        disabled
+                      >
+                        Selecione uma área
+                      </option>
+
+                      {projectAreas.map(
+                        (area) => (
+                          <option
+                            key={area}
+                            value={area}
+                          >
+                            {area}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </Field>
+
+                  <Field label="Responsável">
+                    <input
+                      required
+                      value={
+                        project.responsible
+                      }
+                      onChange={(event) =>
+                        updateField(
+                          "responsible",
+                          event.target.value,
+                        )
+                      }
+                      placeholder="Ex.: Prof. Marcílio Correia"
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Resumo">
+                  <textarea
+                    required
+                    maxLength={300}
+                    rows={4}
+                    value={project.summary}
+                    onChange={(event) =>
+                      updateField(
+                        "summary",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Breve resumo do projeto..."
+                    className={
+                      textareaClass
+                    }
+                  />
+
+                  <p className="mt-1 text-right text-xs text-[#7a8e8c]">
+                    {
+                      project.summary
+                        .length
+                    }
+                    /300
+                  </p>
+                </Field>
+
+                <Field label="Descrição completa">
+                  <textarea
+                    required
+                    rows={9}
+                    value={
+                      project.description
+                    }
+                    onChange={(event) =>
+                      updateField(
+                        "description",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Descreva objetivos, metodologia e resultados esperados..."
+                    className={
+                      textareaClass
+                    }
                   />
                 </Field>
               </div>
+            </section>
 
-              <Field label="Resumo">
-                <textarea
-                  required
-                  maxLength={300}
-                  rows={4}
-                  value={project.summary}
-                  onChange={(event) =>
-                    updateField("summary", event.target.value)
-                  }
-                  className={textareaClass}
-                  placeholder="Breve resumo do projeto..."
-                />
+            <section className="rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_12px_rgba(7,26,43,0.06)]">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f2f0] text-[#27877d]">
+                  <Users size={20} />
+                </div>
 
-                <p className="mt-1 text-right text-xs text-[#7a8e8c]">
-                  {project.summary.length}/300
-                </p>
-              </Field>
+                <div>
+                  <h2 className="font-bold">
+                    Equipe envolvida
+                  </h2>
 
-              <Field label="Descrição completa">
-                <textarea
-                  required
-                  rows={9}
-                  value={project.description}
-                  onChange={(event) =>
-                    updateField(
-                      "description",
-                      event.target.value,
-                    )
-                  }
-                  className={textareaClass}
-                  placeholder="Descreva objetivos, metodologia e resultados esperados..."
-                />
-              </Field>
-            </div>
-          </section>
+                  <p className="text-sm text-[#667a77]">
+                    Vincule membros cadastrados ao projeto.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 overflow-hidden rounded-xl border border-black/10">
+                {loadingMembers ? (
+                  <p className="px-4 py-8 text-center text-sm text-[#7a8e8c]">
+                    Carregando membros...
+                  </p>
+                ) : members.length === 0 ? (
+                  <p className="px-4 py-8 text-center text-sm text-[#7a8e8c]">
+                    Nenhum membro cadastrado.
+                  </p>
+                ) : (
+                  <div className="max-h-80 divide-y divide-black/5 overflow-y-auto">
+                    {members.map(
+                      (member) => {
+                        const checked =
+                          project.memberIds.includes(
+                            member.id,
+                          );
+
+                        return (
+                          <label
+                            key={
+                              member.id
+                            }
+                            className="flex cursor-pointer items-center gap-4 px-4 py-4 transition hover:bg-[#f7faf8]"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={
+                                checked
+                              }
+                              onChange={(
+                                event,
+                              ) =>
+                                toggleMember(
+                                  member.id,
+                                  event
+                                    .target
+                                    .checked,
+                                )
+                              }
+                              className="h-4 w-4 shrink-0 accent-[#27877d]"
+                            />
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-[#071a2b]">
+                                {
+                                  member.name
+                                }
+                              </p>
+
+                              <p className="mt-0.5 text-xs text-[#72ad99]">
+                                {
+                                  member.role
+                                }
+                              </p>
+                            </div>
+
+                            {checked && (
+                              <span className="rounded-full bg-[#e8f2f0] px-3 py-1 text-xs font-medium text-[#27877d]">
+                                Vinculado
+                              </span>
+                            )}
+                          </label>
+                        );
+                      },
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <p className="mt-3 text-xs text-[#667a77]">
+                {
+                  project.memberIds
+                    .length
+                }{" "}
+                membro(s) selecionado(s)
+              </p>
+            </section>
+          </div>
 
           <aside className="h-fit rounded-2xl border border-black/5 bg-white p-6 shadow-[0_2px_12px_rgba(7,26,43,0.06)]">
-            <h2 className="text-lg font-bold">Publicação</h2>
+            <h2 className="text-lg font-bold">
+              Publicação
+            </h2>
 
             <p className="mt-1 text-sm text-[#667a77]">
               Defina status, período, imagem e destaque.
@@ -285,16 +545,23 @@ export default function NewProjectPage() {
                   onChange={(event) =>
                     updateField(
                       "status",
-                      event.target.value as ProjectStatus,
+                      event.target
+                        .value as ProjectStatus,
                     )
                   }
                   className={inputClass}
                 >
-                  <option value="Planejado">Planejado</option>
+                  <option value="Planejado">
+                    Planejado
+                  </option>
+
                   <option value="Em andamento">
                     Em andamento
                   </option>
-                  <option value="Concluído">Concluído</option>
+
+                  <option value="Concluído">
+                    Concluído
+                  </option>
                 </select>
               </Field>
 
@@ -302,7 +569,9 @@ export default function NewProjectPage() {
                 <input
                   required
                   type="date"
-                  value={project.startDate}
+                  value={
+                    project.startDate
+                  }
                   onChange={(event) =>
                     updateField(
                       "startDate",
@@ -316,7 +585,10 @@ export default function NewProjectPage() {
               <Field label="Data de término">
                 <input
                   type="date"
-                  value={project.endDate ?? ""}
+                  value={
+                    project.endDate ??
+                    ""
+                  }
                   onChange={(event) =>
                     updateField(
                       "endDate",
@@ -336,7 +608,9 @@ export default function NewProjectPage() {
                   {imagePreview ? (
                     <div className="relative h-40 w-full overflow-hidden rounded-lg">
                       <Image
-                        src={imagePreview}
+                        src={
+                          imagePreview
+                        }
                         alt="Prévia da imagem"
                         fill
                         unoptimized
@@ -355,7 +629,8 @@ export default function NewProjectPage() {
                       </span>
 
                       <span className="mt-1 text-xs text-[#72ad99]">
-                        PNG, JPG ou WebP · máx. 5 MB
+                        PNG, JPG ou WebP
+                        · máx. 5 MB
                       </span>
                     </div>
                   )}
@@ -376,7 +651,9 @@ export default function NewProjectPage() {
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     className="sr-only"
-                    onChange={handleImageChange}
+                    onChange={
+                      handleImageChange
+                    }
                   />
                 </label>
               </div>
@@ -387,6 +664,7 @@ export default function NewProjectPage() {
                     size={18}
                     className="text-[#27877d]"
                   />
+
                   <span className="text-sm font-medium">
                     Projeto em destaque
                   </span>
@@ -394,11 +672,14 @@ export default function NewProjectPage() {
 
                 <input
                   type="checkbox"
-                  checked={project.featured}
+                  checked={
+                    project.featured
+                  }
                   onChange={(event) =>
                     updateField(
                       "featured",
-                      event.target.checked,
+                      event.target
+                        .checked,
                     )
                   }
                   className="h-4 w-4 accent-[#27877d]"
@@ -417,7 +698,10 @@ export default function NewProjectPage() {
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#28a745] text-sm font-semibold text-white transition hover:bg-[#218838] disabled:opacity-50"
               >
                 <Save size={18} />
-                {saving ? "Criando..." : "Criar projeto"}
+
+                {saving
+                  ? "Criando..."
+                  : "Criar projeto"}
               </button>
             </div>
           </aside>
@@ -428,10 +712,10 @@ export default function NewProjectPage() {
 }
 
 const inputClass =
-  "h-12 w-full rounded-xl border border-black/15 bg-white px-4 text-sm outline-none transition focus:border-[#27877d] focus:ring-2 focus:ring-[#27877d]/10";
+  "h-12 w-full rounded-xl border border-black/15 bg-white px-4 text-sm text-[#071a2b] outline-none transition placeholder:text-gray-400 focus:border-[#27877d] focus:ring-2 focus:ring-[#27877d]/10";
 
 const textareaClass =
-  "w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-sm leading-6 outline-none transition focus:border-[#27877d] focus:ring-2 focus:ring-[#27877d]/10";
+  "w-full resize-y rounded-xl border border-black/15 bg-white px-4 py-3 text-sm leading-6 text-[#071a2b] outline-none transition placeholder:text-gray-400 focus:border-[#27877d] focus:ring-2 focus:ring-[#27877d]/10";
 
 function Field({
   label,

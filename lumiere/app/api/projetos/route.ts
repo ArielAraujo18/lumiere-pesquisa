@@ -1,5 +1,8 @@
 import clientPromise from "@/lib/mongodb";
-import type { ProjectPayload, ProjectStatus } from "@/types/project";
+import type {
+  ProjectPayload,
+  ProjectStatus,
+} from "@/types/project";
 
 export const runtime = "nodejs";
 
@@ -30,15 +33,21 @@ function serializeProject(
     id: _id.toString(),
     ...data,
 
-    // Compatibilidade com o componente público que usa project.image
     image:
       typeof project.imageUrl === "string"
         ? project.imageUrl
         : "",
+
+    // Projetos antigos podem não possuir memberIds.
+    memberIds: Array.isArray(project.memberIds)
+      ? project.memberIds
+      : [],
   };
 }
 
-function validatePayload(payload: Partial<ProjectPayload>) {
+function validatePayload(
+  payload: Partial<ProjectPayload>,
+) {
   const requiredFields: Array<keyof ProjectPayload> = [
     "title",
     "area",
@@ -52,12 +61,19 @@ function validatePayload(payload: Partial<ProjectPayload>) {
   for (const field of requiredFields) {
     const value = payload[field];
 
-    if (typeof value !== "string" || !value.trim()) {
+    if (
+      typeof value !== "string" ||
+      !value.trim()
+    ) {
       return `O campo ${field} é obrigatório.`;
     }
   }
 
-  if (!validStatuses.includes(payload.status as ProjectStatus)) {
+  if (
+    !validStatuses.includes(
+      payload.status as ProjectStatus,
+    )
+  ) {
     return "Status inválido.";
   }
 
@@ -67,7 +83,10 @@ function validatePayload(payload: Partial<ProjectPayload>) {
 export async function GET() {
   try {
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB ?? "lumi");
+
+    const db = client.db(
+      process.env.MONGODB_DB ?? "lumi",
+    );
 
     const projects = await db
       .collection("projetos")
@@ -79,11 +98,15 @@ export async function GET() {
       projects.map(serializeProject),
     );
   } catch (error) {
-    console.error("Erro ao buscar projetos:", error);
+    console.error(
+      "Erro ao buscar projetos:",
+      error,
+    );
 
     return Response.json(
       {
-        error: "Não foi possível buscar os projetos.",
+        error:
+          "Não foi possível buscar os projetos.",
         details:
           process.env.NODE_ENV === "development" &&
           error instanceof Error
@@ -97,32 +120,54 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // Agora recebe FormData, não JSON
     const formData = await request.formData();
 
+    const memberIds = formData
+      .getAll("memberIds")
+      .map((value) => String(value))
+      .filter(Boolean);
+
     const payload: Partial<ProjectPayload> = {
-      title: String(formData.get("title") ?? ""),
-      area: String(formData.get("area") ?? ""),
+      title: String(
+        formData.get("title") ?? "",
+      ),
+
+      area: String(
+        formData.get("area") ?? "",
+      ),
+
       status: String(
         formData.get("status") ?? "",
       ) as ProjectStatus,
+
       responsible: String(
         formData.get("responsible") ?? "",
       ),
-      summary: String(formData.get("summary") ?? ""),
+
+      summary: String(
+        formData.get("summary") ?? "",
+      ),
+
       description: String(
         formData.get("description") ?? "",
       ),
+
       startDate: String(
         formData.get("startDate") ?? "",
       ),
+
       endDate: String(
         formData.get("endDate") ?? "",
       ),
-      featured: formData.get("featured") === "true",
+
+      featured:
+        formData.get("featured") === "true",
+
+      memberIds,
     };
 
-    const validationError = validatePayload(payload);
+    const validationError =
+      validatePayload(payload);
 
     if (validationError) {
       return Response.json(
@@ -136,7 +181,10 @@ export async function POST(request: Request) {
 
     let imageUrl = "";
 
-    if (image instanceof File && image.size > 0) {
+    if (
+      image instanceof File &&
+      image.size > 0
+    ) {
       const allowedTypes = [
         "image/jpeg",
         "image/png",
@@ -146,7 +194,8 @@ export async function POST(request: Request) {
       if (!allowedTypes.includes(image.type)) {
         return Response.json(
           {
-            error: "A imagem deve ser JPG, PNG ou WebP.",
+            error:
+              "A imagem deve ser JPG, PNG ou WebP.",
           },
           { status: 400 },
         );
@@ -155,7 +204,8 @@ export async function POST(request: Request) {
       if (image.size > 5 * 1024 * 1024) {
         return Response.json(
           {
-            error: "A imagem deve ter no máximo 5 MB.",
+            error:
+              "A imagem deve ter no máximo 5 MB.",
           },
           { status: 400 },
         );
@@ -165,7 +215,9 @@ export async function POST(request: Request) {
         await image.arrayBuffer(),
       );
 
-      imageUrl = `data:${image.type};base64,${buffer.toString("base64")}`;
+      imageUrl =
+        `data:${image.type};base64,` +
+        buffer.toString("base64");
     }
 
     // DATAS
@@ -175,7 +227,9 @@ export async function POST(request: Request) {
 
     if (Number.isNaN(startDate.getTime())) {
       return Response.json(
-        { error: "Data de início inválida." },
+        {
+          error: "Data de início inválida.",
+        },
         { status: 400 },
       );
     }
@@ -189,7 +243,9 @@ export async function POST(request: Request) {
 
       if (Number.isNaN(endDate.getTime())) {
         return Response.json(
-          { error: "Data de término inválida." },
+          {
+            error: "Data de término inválida.",
+          },
           { status: 400 },
         );
       }
@@ -197,14 +253,22 @@ export async function POST(request: Request) {
 
     // BANCO
     const client = await clientPromise;
-    const db = client.db(process.env.MONGODB_DB ?? "lumi");
-    const collection = db.collection("projetos");
 
-    const baseSlug = slugify(payload.title!);
+    const db = client.db(
+      process.env.MONGODB_DB ?? "lumi",
+    );
 
-    const existingSlug = await collection.findOne({
-      slug: baseSlug,
-    });
+    const collection =
+      db.collection("projetos");
+
+    const baseSlug = slugify(
+      payload.title!,
+    );
+
+    const existingSlug =
+      await collection.findOne({
+        slug: baseSlug,
+      });
 
     const slug = existingSlug
       ? `${baseSlug}-${Date.now()}`
@@ -215,41 +279,55 @@ export async function POST(request: Request) {
     const project = {
       title: payload.title!.trim(),
       slug,
+
       area: payload.area!.trim(),
+
       status: payload.status,
-      responsible: payload.responsible!.trim(),
+
+      responsible:
+        payload.responsible!.trim(),
+
       summary: payload.summary!.trim(),
-      description: payload.description!.trim(),
+
+      description:
+        payload.description!.trim(),
 
       startDate,
       endDate,
 
       imageUrl,
 
-      featured: Boolean(payload.featured),
+      // Membros vinculados
+      memberIds,
+
+      featured:
+        Boolean(payload.featured),
 
       createdAt: now,
       updatedAt: now,
     };
 
-    const result = await collection.insertOne(project);
+    const result =
+      await collection.insertOne(project);
 
     return Response.json(
       {
         id: result.insertedId.toString(),
         ...project,
-
-        // Para o frontend público
         image: imageUrl,
       },
       { status: 201 },
     );
   } catch (error) {
-    console.error("Erro ao criar projeto:", error);
+    console.error(
+      "Erro ao criar projeto:",
+      error,
+    );
 
     return Response.json(
       {
-        error: "Não foi possível criar o projeto.",
+        error:
+          "Não foi possível criar o projeto.",
         details:
           process.env.NODE_ENV === "development" &&
           error instanceof Error
