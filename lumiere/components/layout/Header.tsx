@@ -59,13 +59,14 @@ const whatsappUrl = `https://wa.me/5584998554382?text=${whatsappMessage}`;
           ))}
         </div>
 
-        <Link
+        <a
           href={whatsappUrl}
+          target="_blank"
           rel="noopener noreferrer"
           className="hidden rounded-xl bg-[#43a548] px-6 py-3 text-sm font-semibold transition-colors hover:bg-[#39913e] lg:inline-flex"
         >
           Fale com o grupo
-        </Link>
+        </a>
 
         <button
           type="button"

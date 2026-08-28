@@ -77,13 +77,14 @@ export default async function HomePage() {
                 </span>
               </Link>
 
-              <Link
+              <a
                 href={whatsappMessage}
+                target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-14 items-center justify-center rounded-xl border border-white/30 px-6 py-4 text-sm font-semibold transition-colors hover:bg-white/10 sm:px-8 sm:text-base"
               >
                 Fale conosco
-              </Link>
+              </a>
             </div>
           </div>
         </div>
