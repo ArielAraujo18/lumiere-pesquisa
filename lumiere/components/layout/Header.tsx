@@ -12,6 +12,11 @@ export function Header() {
   function closeMenu() {
     setMenuOpen(false);
   }
+  const whatsappMessage = encodeURIComponent(
+    "Olá! Gostaria de entrar em contato com o Grupo Lumière para saber mais sobre os projetos, pesquisas e atividades do grupo."
+  );
+
+const whatsappUrl = `https://wa.me/5584998554382?text=${whatsappMessage}`;
 
   return (
     <header className="relative z-50 bg-[#063b3a] text-white">
@@ -55,8 +60,7 @@ export function Header() {
         </div>
 
         <Link
-          href="https://wa.me/558498554382?text=Ol%C3%A1%21%20Tudo%20bem%3F%20Gostaria%20de%20entrar%20em%20contato%20com%20o%20Grupo%20Lumi%C3%A8re%20para%20saber%20mais%20sobre%20os%20projetos%2C%20pesquisas%20e%20atividades%20desenvolvidas%20pelo%20grupo."
-          target="_blank"
+          href={whatsappUrl}
           rel="noopener noreferrer"
           className="hidden rounded-xl bg-[#43a548] px-6 py-3 text-sm font-semibold transition-colors hover:bg-[#39913e] lg:inline-flex"
         >
