@@ -27,6 +27,8 @@ export default async function HomePage() {
     "Olá! Gostaria de entrar em contato com o Grupo Lumière para saber mais sobre os projetos, pesquisas e atividades do grupo."
   );
 
+  const whatsappUrl = `https://wa.me/5584998554382?text=${whatsappMessage}`;
+
   return (
     <main>
       <section className="relative min-h-[calc(100svh-72px)] overflow-hidden bg-gradient-to-br from-[#0a4542] via-[#14564d] to-[#287263] text-white">
@@ -78,7 +80,7 @@ export default async function HomePage() {
               </Link>
 
               <a
-                href={whatsappMessage}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex min-h-14 items-center justify-center rounded-xl border border-white/30 px-6 py-4 text-sm font-semibold transition-colors hover:bg-white/10 sm:px-8 sm:text-base"

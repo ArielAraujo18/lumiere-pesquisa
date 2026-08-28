@@ -16,7 +16,7 @@ export function Header() {
     "Olá! Gostaria de entrar em contato com o Grupo Lumière para saber mais sobre os projetos, pesquisas e atividades do grupo."
   );
 
-const whatsappUrl = `https://wa.me/5584998554382?text=${whatsappMessage}`;
+  const whatsappUrl = `https://wa.me/5584998554382?text=${whatsappMessage}`;
 
   return (
     <header className="relative z-50 bg-[#063b3a] text-white">
@@ -119,13 +119,15 @@ const whatsappUrl = `https://wa.me/5584998554382?text=${whatsappMessage}`;
               </Link>
             ))}
 
-            <Link
-              href="/contato"
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={closeMenu}
               className="mt-3 rounded-xl bg-[#43a548] px-6 py-3 text-center text-sm font-semibold transition-colors hover:bg-[#39913e]"
             >
               Fale com o grupo
-            </Link>
+            </a>
           </div>
         </div>
       )}
